@@ -6,19 +6,21 @@ enum InstrType {
 
 abstract class Instr {
     int issue, exec, write; //issue, exec and write time
+    String instrStr;
     InstrType type;
-    Instr (InstrType type) {
+    Instr (InstrType type, String instrStr) {
         this.type = type;
         this.issue = -1;
         this.exec = -1;
         this.write = -1;
+        this.instrStr = instrStr;
     }
 }
 
 class LDInstr extends Instr {
     int rd, addr;
-    LDInstr(InstrType type, int rd, int addr) {
-        super(type);
+    LDInstr(InstrType type, String instrStr, int rd, int addr) {
+        super(type, instrStr);
         this.rd = rd;
         this.addr = addr;
     }
@@ -30,8 +32,8 @@ class LDInstr extends Instr {
 
 class ArithInstr extends Instr {
     int rd, rs1, rs2;
-    ArithInstr(InstrType type, int rd, int rs1, int rs2) {
-        super(type);
+    ArithInstr(InstrType type, String instrStr, int rd, int rs1, int rs2) {
+        super(type, instrStr);
         this.rd = rd;
         this.rs1 = rs1;
         this.rs2 = rs2;
@@ -44,8 +46,8 @@ class ArithInstr extends Instr {
 
 class JPInstr extends Instr {
     int value, rs, off;
-    JPInstr(InstrType type, int value, int rs, int off) {
-        super(type);
+    JPInstr(InstrType type, String instrStr, int value, int rs, int off) {
+        super(type, instrStr);
         this.value = value;
         this.rs = rs;
         this.off = off;
