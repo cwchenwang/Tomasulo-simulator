@@ -73,11 +73,12 @@ public class Tomasulo {
     //execute for one round
     public void executeByStep() {
         this.clock++;
-        System.out.println("-----------------------");
+        System.out.println("------------------------------------");
         System.out.println("Clock: " + clock);
         if(issue() == true) {
             this.pc++;
         }
+        printStatus();
     }
 
     boolean issue() {
@@ -134,6 +135,7 @@ public class Tomasulo {
         if(instr.issue == -1) instr.issue = clock;
         ldbuffer.instr = instr;
         ldbuffer.op = InstrType.LD;
+        ldbuffer.addr = instr.addr;
     }
 
     void issueArith(Reserv reserv, ArithInstr instr) {
@@ -167,5 +169,38 @@ public class Tomasulo {
         }
         else reserv.qj = regs[rs].rs;
         reserv.qk = null;
+    }
+    void printStatus() {
+        System.out.println("Reservation Station");
+        System.out.println("\tBusy\tOp\tvj\tvk\tqj\tqk");
+        for(int i = 0; i < ARSNUM; i++) System.out.println(addReserv[i]);
+        for(int i = 0; i < MRSNUM; i++) System.out.println(mulReserv[i]);
+        System.out.println("Load buffer");
+        System.out.println("\tBusy\tAddr");
+        for(int i = 0; i < LBNUM; i++) System.out.println(loadBuffer[i]);
+        System.out.println("Register status");
+        for(int i = 0; i < 4; i++) {
+            String regName = "";
+            String regState = "";
+            for(int j = 0; j < 7; j++) {
+                regName += "F"+(i*8+j) + "\t";
+                if(regs[i].valid == false) regState += regs[i].rs;
+                regState += "\t";
+            }
+            System.out.println(regName);
+            System.out.println(regState);
+        }
+        System.out.println("Register Value");
+        for(int i = 0; i < 4; i++) {
+            String regName = "";
+            String regValue = "";
+            for(int j = 0; j < 7; j++) {
+                regName += "F"+(i*8+j) + "\t";
+                if(regs[i].valid == true) regValue += regs[i].value;
+                regValue += "\t";
+            }
+            System.out.println(regName);
+            System.out.println(regValue);
+        }
     }
 }
