@@ -1,18 +1,25 @@
 package tomasulo;
 
-class LoadBuffer{
+class LoadBuffer {
     int issueTime;
     int writeTime;
 
     boolean busy;
-    boolean exec;
+    InstrType op;
+
+    int res;
 
     Instr instr;
+    String name;
 
-    LoadBuffer() {
-        busy = false;
-        exec = false;
-        writeTime = -1;
+    LoadBuffer(String name) {
+        this.busy = false;
+        this.name = name;
+        this.issueTime = this.writeTime = -1;
+    }
+    void clear() {
+        this.busy = false;
+        this.issueTime = this.writeTime = -1;
     }
 }
 
@@ -21,20 +28,28 @@ class Reserv {
     int readyTime;
     int writeTime;
 
-    boolean busy; // whether the reservation is claimed
-    boolean exec;
+    boolean busy;
+    InstrType op;
 
-    String Qj, Qk; // the reservation that generates value
-    int Vj, Vk; // the value, check Q first, if Q null then ready
+    int res;
+    String qj, qk; // the reservation that generates value
+    int vj, vk; // the value, check Q first, if Q null then ready
 
     Instr instr;
+    String name;
     InstrType operation;
 
-    Reserv() {
-        exec = false;
-        busy = false;
-        Qj = Qk = null;
-        readyTime = 0;
+    Reserv(String name) {
+        this.busy = false;
+        this.name = name;
+        this.qj = this.qk = null;
+        readyTime = -1;
         writeTime = -1;
+    }
+    void clear() {
+        this.busy = false;
+        this.qj = this.qk = null;
+        this.readyTime = -1;
+        this.writeTime = -1;
     }
 }

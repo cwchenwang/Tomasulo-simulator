@@ -55,22 +55,38 @@ public class InstrLoader {
         for(String instrStr : instrStrList) {
             String[] opList = instrStr.split(",");
             InstrType type = convertStrToType(opList[0]);
-            System.out.print(opList[0]+" ");
-            System.out.println(type);
+            // System.out.print(opList[0]+" ");
+            // System.out.println(type);
             if (type == InstrType.LD) {
                 int rd = Integer.parseInt(opList[1].substring(1));
                 int addr = Integer.parseUnsignedInt(opList[2].substring(2).toLowerCase(), 16);
-                instrList.add(new LDInstr(type, instrStr, rd, addr));
+                instrList.add(new LDInstr(type, instrStr, 3, rd, addr));
             } else if (type == InstrType.JUMP) {
                 int value = Integer.parseUnsignedInt(opList[1].substring(2).toLowerCase(), 16);
                 int rs = Integer.parseInt(opList[2].substring(1));
                 int off = Integer.parseUnsignedInt(opList[3].substring(2).toLowerCase(), 16);
-                instrList.add(new JPInstr(type, instrStr, value, rs, off));
+                instrList.add(new JPInstr(type, instrStr, 1, value, rs, off));
             } else {
                 int rd = Integer.parseInt(opList[1].substring(1));
                 int rs1 = Integer.parseInt(opList[2].substring(1));
                 int rs2 = Integer.parseInt(opList[3].substring(1));
-                instrList.add(new ArithInstr(type, instrStr, rd, rs1, rs2));
+                int latency;
+                switch (type) {
+                    case ADD:
+                    case SUB:
+                        latency = 3;
+                        break;
+                    case MUL:
+                        latency = 4;
+                        break;
+                    case DIV:
+                        latency = 4;
+                        break;
+                    default:
+                        System.out.println("Unknown instruction type.");
+                        latency = 0;
+                }
+                instrList.add(new ArithInstr(type, instrStr, latency, rd, rs1, rs2));
             }
         }
         System.out.println(instrList.size());

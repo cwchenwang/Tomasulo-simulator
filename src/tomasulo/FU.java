@@ -3,25 +3,26 @@ package tomasulo;
 class FU {
     int runtimeLeft;
     boolean busy;
-    int result;
+    int res;
     Instr instr;
-    FU () {
+    String name;
+    FU (String name) {
         busy = false;
     }
 }
 
 class ArithFU extends FU {
     Reserv reserv;
-    ArithFU() {
-        super();
+    ArithFU(String name) {
+        super(name);
         reserv = null;
     }
 }
 
 class LoadFU extends FU {
     LoadBuffer loadBuffer;
-    LoadFU () {
-        super();
+    LoadFU (String name) {
+        super(name);
         loadBuffer = null;
     }
 }
