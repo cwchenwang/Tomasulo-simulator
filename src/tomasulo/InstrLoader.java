@@ -9,6 +9,12 @@ import java.util.ArrayList;
 
 //Parse the instructions
 public class InstrLoader {
+    static final int LDLTC = 3;
+    static final int JPLTC = 1;
+    static final int ADDLTC = 3;
+    static final int SUBLTC = 3;
+    static final int MULLTC = 4;
+    static final int DIVLTC = 4;
     //read the instr file line by line
     static List<String> readFileByLine(String filePath)
     {
@@ -60,12 +66,12 @@ public class InstrLoader {
             if (type == InstrType.LD) {
                 int rd = Integer.parseInt(opList[1].substring(1));
                 int addr = Integer.parseUnsignedInt(opList[2].substring(2).toLowerCase(), 16);
-                instrList.add(new LDInstr(type, instrStr, 3, rd, addr));
+                instrList.add(new LDInstr(type, instrStr, LDLTC, rd, addr));
             } else if (type == InstrType.JUMP) {
                 int value = Integer.parseUnsignedInt(opList[1].substring(2).toLowerCase(), 16);
                 int rs = Integer.parseInt(opList[2].substring(1));
                 int off = Integer.parseUnsignedInt(opList[3].substring(2).toLowerCase(), 16);
-                instrList.add(new JPInstr(type, instrStr, 1, value, rs, off));
+                instrList.add(new JPInstr(type, instrStr, JPLTC, value, rs, off));
             } else {
                 int rd = Integer.parseInt(opList[1].substring(1));
                 int rs1 = Integer.parseInt(opList[2].substring(1));
@@ -74,13 +80,13 @@ public class InstrLoader {
                 switch (type) {
                     case ADD:
                     case SUB:
-                        latency = 3;
+                        latency = SUBLTC;
                         break;
                     case MUL:
-                        latency = 4;
+                        latency = MULLTC;
                         break;
                     case DIV:
-                        latency = 4;
+                        latency = DIVLTC;
                         break;
                     default:
                         System.out.println("Unknown instruction type.");

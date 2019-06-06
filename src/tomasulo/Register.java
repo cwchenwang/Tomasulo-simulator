@@ -14,4 +14,9 @@ class Register {
         valid = true;
         rs = null;
     }
+    void clear() {
+        value = 0;
+        rs = null;
+        valid = true;
+    }
 }

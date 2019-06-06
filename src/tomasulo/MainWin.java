@@ -1,5 +1,6 @@
 package tomasulo;
 
+import java.io.File;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -22,7 +23,7 @@ public class MainWin {
     }
 
     public MainWin() {
-        tomasulo = new Tomasulo("../test/test0.nel");
+        tomasulo = new Tomasulo();
         initUI();
     }
 
@@ -49,6 +50,17 @@ public class MainWin {
                 updateData();
             }
         });
+        btnPanel.brsBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Choose file!");
+                JFileChooser jf = new JFileChooser();
+                jf.showOpenDialog(null);
+                File f = jf.getSelectedFile();
+                String path = f.getAbsolutePath();
+                loadNelFile(path);
+            }
+        });
         frame.add(btnPanel);
         frame.add(rsPanel);
         frame.add(lbPanel);
@@ -57,7 +69,17 @@ public class MainWin {
         frame.setVisible(true);
     }
 
+    void loadNelFile(String path) {
+        System.out.println(path);
+        tomasulo.execNewFile(path);
+        JOptionPane.showMessageDialog(null, "Nel file has been loaded!", "Tips", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     void updateData() {
+        if(tomasulo.instrs.size() <= 0) {
+            JOptionPane.showMessageDialog(null, "Please choose a legal file!", "Error", JOptionPane.INFORMATION_MESSAGE);
+            return; 
+        }
         if( tomasulo.executeByStep() == true) { // finished
             JOptionPane.showMessageDialog(null, "Exec has finished!", "Tips", JOptionPane.INFORMATION_MESSAGE);
             return;
@@ -72,5 +94,6 @@ public class MainWin {
         regPanel.updateData(tomasulo.getRegs());
         fuPanel.updateData(tomasulo.getFU());
     }
+
 
 }

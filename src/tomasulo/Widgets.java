@@ -7,6 +7,7 @@ import javax.swing.*;
 class BtnPanel extends JPanel{
     private static final long serialVersionUID = 1L;
     FlowLayout flowLayout;
+    JButton brsBtn;
     JButton runBtn;
     JLabel clkLabel;
     public BtnPanel() {
@@ -15,6 +16,11 @@ class BtnPanel extends JPanel{
         this.setLayout(flowLayout);
 
         runBtn = new JButton("Run");
+        brsBtn = new JButton("Choose");
+        this.add(brsBtn);
+        this.brsBtn.setPreferredSize(new Dimension(80, 60));
+        brsBtn.setBackground(Color.BLUE);
+
         this.add(runBtn);
         this.runBtn.setPreferredSize(new Dimension(80, 60));
         runBtn.setBackground(Color.BLUE);

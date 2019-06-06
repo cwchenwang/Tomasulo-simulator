@@ -28,6 +28,11 @@ class ArithFU extends FU {
         super(name);
         reserv = null;
     }
+    void clear() {
+        this.busy = false;
+        this.instr = null;
+        this.reserv = null;
+    }
 }
 
 class LoadFU extends FU {
@@ -35,5 +40,10 @@ class LoadFU extends FU {
     LoadFU (String name) {
         super(name);
         loadBuffer = null;
+    }
+    void clear() {
+        this.busy = false;
+        this.instr = null;
+        this.loadBuffer = null;
     }
 }

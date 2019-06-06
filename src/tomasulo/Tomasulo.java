@@ -31,8 +31,8 @@ public class Tomasulo {
     boolean hasJump;
     int pc; //pc, should change when jump exec comp
 
-    public Tomasulo(String filePath) {
-        instrs = InstrLoader.parseInstr(filePath);
+    public Tomasulo() {
+        //instrs = InstrLoader.parseInstr(filePath);
         pc = 0;
         hasJump = false;
         //init register
@@ -65,6 +65,38 @@ public class Tomasulo {
         }
         for (int i = 0; i < LBNUM; i++) {
             loadBuffer[i] = new LoadBuffer("LB"+(i+1));
+        }
+    }
+
+    void execNewFile(String path) {
+        instrs = InstrLoader.parseInstr(path);
+        reset();
+    }
+
+    void reset() { //used when new file loaded
+        pc = 0;
+        hasJump = false;
+        for (int i = 0; i < REGNUM; i++) {
+            regs[i].clear();
+        }
+        for (int i = 0; i < ADDERNUM; i++) {
+            adders[i].clear();
+        }
+        for (int i = 0; i < MULNUM; i++) {
+            multers[i].clear();
+        }
+        for (int i = 0; i < LOADNUM; i++) {
+            loaders[i].clear();
+        }
+
+        for (int i = 0; i < ARSNUM; i++) {
+            addReserv[i].clear();
+        }
+        for (int i = 0; i < MRSNUM; i++) {
+            mulReserv[i].clear();
+        }
+        for (int i = 0; i < LBNUM; i++) {
+            loadBuffer[i].clear();
         }
     }
 
