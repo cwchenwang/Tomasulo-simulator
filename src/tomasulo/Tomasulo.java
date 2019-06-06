@@ -31,7 +31,7 @@ public class Tomasulo {
     boolean hasJump;
     int pc; //pc, should change when jump exec comp
 
-    Tomasulo(String filePath) {
+    public Tomasulo(String filePath) {
         instrs = InstrLoader.parseInstr(filePath);
         pc = 0;
         hasJump = false;
@@ -69,7 +69,7 @@ public class Tomasulo {
     }
 
     //execute for one round
-    public void executeByStep() {
+    public boolean executeByStep() {
         // if(hasJump == true || pc < instrs.size()) {
 
         // } else {
@@ -83,7 +83,7 @@ public class Tomasulo {
         if(this.pc >= instrs.size() && checkFinish() == true) {
             System.out.println("Finished yet!");
             printTime();
-            return;
+            return true;
         }
         exec();
         writeBack();
@@ -92,6 +92,7 @@ public class Tomasulo {
         }
         checkFU();
         printStatus();
+        return false;
     }
 
     void printTime() {
@@ -471,6 +472,115 @@ public class Tomasulo {
         }
         else reserv.qj = regs[rs].rs;
         reserv.qk = null;
+    }
+
+    public String[][] getLB() {
+        String[][] res = new String[3][2];
+        for(int i = 0; i < LBNUM; i++) {
+            if(loadBuffer[i].busy) {
+                res[i][0] = "Yes";
+                res[i][1] = Integer.toString(loadBuffer[i].res);
+            } else {
+                res[i][0] = "No";
+                res[i][1] = "";
+            }
+        }
+        return res;
+    }
+
+    public String[][] getRS() {
+        String[][] res = new String[9][6];
+        for(int i = 0; i < 6; i++) {
+            if(addReserv[i].busy) {
+                res[i][0] = "Yes";
+                if(addReserv[i].op != null) res[i][1] = addReserv[i].op.toString();
+                if(addReserv[i].qj == null) {
+                    res[i][2] = Integer.toString(addReserv[i].vj);
+                    res[i][4] = "";
+                } else {
+                    res[i][2] = "";
+                    res[i][4] = addReserv[i].qj;
+                }
+                if(addReserv[i].qk == null) {
+                    res[i][3] = Integer.toString(addReserv[i].vk);
+                    res[i][5] = "";
+                } else {
+                    res[i][3] = "";
+                    res[i][5] = addReserv[i].qk;
+                }
+                if(addReserv[i].op == InstrType.JUMP) {
+                    res[i][3] = res[i][5] = "";
+                }
+            } else {
+                res[i][0] = "No";
+                res[i][1] = res[i][2] = res[i][3] = res[i][4] = res[i][5] = "";
+            }
+        }
+        for(int i = 6; i < 9; i++) {
+            if(mulReserv[i-6].busy) {
+                res[i][0] = "Yes";
+                if(mulReserv[i-6].op != null) res[i][1] = mulReserv[i-6].op.toString();
+                if(mulReserv[i-6].qj == null) {
+                    res[i][2] = Integer.toString(mulReserv[i-6].vj);
+                    res[i][4] = "";
+                } else {
+                    res[i][2] = "";
+                    res[i][4] = mulReserv[i-6].qj;
+                }
+                if(mulReserv[i-6].qk == null) {
+                    res[i][3] = Integer.toString(mulReserv[i-6].vk);
+                    res[i][5] = "";
+                } else {
+                    res[i][3] = "";
+                    res[i][5] = mulReserv[i-6].qk;
+                }
+            } else {
+                res[i][0] = "No";
+                res[i][1] = res[i][2] = res[i][3] = res[i][4] = res[i][5] = "";
+            }
+        }
+        return res;
+    }
+
+    public String[] getRegs() {
+        String[] res = new String[REGNUM];
+        for(int i = 0; i < REGNUM; i++) {
+            if(regs[i].valid) {
+                res[i] = Integer.toString(regs[i].value);
+            } else {
+                res[i] = regs[i].rs;
+            }
+        }
+        return res;
+    }
+
+    public String[][] getFU() {
+        String[][] res = new String[7][2];
+        for(int i = 0; i < ADDERNUM; i++) {
+            if(adders[i].busy) {
+                res[i][0] = adders[i].instr.instrStr;
+                res[i][1] = Integer.toString(adders[i].runtimeLeft);
+            } else {
+                res[i][0] = res[i][1] = "";
+            }
+        }
+        for(int i = 0; i < MULNUM; i++) {
+            if(multers[i].busy) {
+                res[i+3][0] = multers[i].instr.instrStr;
+                res[i+3][1] = Integer.toString(multers[i].runtimeLeft);
+            } else {
+                res[i+3][0] = res[i+3][1] = "";
+            }
+        }
+        for(int i = 0; i < LOADNUM; i++) {
+            if(loaders[i].busy) {
+                res[i+5][0] = loaders[i].instr.instrStr;
+                res[i+5][1] = Integer.toString(loaders[i].runtimeLeft);
+            } else {
+                res[i+5][0] = res[i+5][1] = "";
+            }
+        }
+        return res;
     }
 
     void printStatus() {

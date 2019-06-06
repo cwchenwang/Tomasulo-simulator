@@ -3,4 +3,4 @@ if [ ! -d "../bin" ]; then
 fi
 javac tomasulo/*.java -d ../bin/
 cd ../bin
-java tomasulo/Main
+java tomasulo/MainWin
