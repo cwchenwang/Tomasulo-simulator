@@ -3,11 +3,22 @@ package tomasulo;
 class FU {
     int runtimeLeft;
     boolean busy;
-    int res;
+    // int res;
     Instr instr;
     String name;
     FU (String name) {
-        busy = false;
+        this.name = name;
+        this.busy = false;
+    }
+    @Override
+    public String toString() {
+        String str = name;
+        if(busy) {
+            str += "\t" + instr.instrStr + "\t" + runtimeLeft;
+        } else {
+            str += "\t\t";
+        }
+        return str;
     }
 }
 

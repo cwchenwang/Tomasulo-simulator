@@ -72,17 +72,291 @@ public class Tomasulo {
 
     //execute for one round
     public void executeByStep() {
+        // if(hasJump == true || pc < instrs.size()) {
+
+        // } else {
+        //     System.out.println("Finished");
+        //     return;
+        // }
         this.clock++;
         System.out.println("------------------------------------");
         System.out.println("Clock: " + clock);
         if(issue() == true) {
             this.pc++;
+        } else {
+            boolean finished = true;
+            for (int i = 0; i < ADDERNUM; i++) {
+                if(adders[i].busy) finished = false;
+            }
+            for (int i = 0; i < MULNUM; i++) {
+                if(multers[i].busy) finished = false;
+            }
+            for (int i = 0; i < LOADNUM; i++) {
+                if(loaders[i].busy) finished = false;
+            }
+            for (int i = 0; i < ARSNUM; i++) {
+                if(addReserv[i].busy) finished = false;
+            }
+            for (int i = 0; i < MRSNUM; i++) {
+                if(mulReserv[i].busy) finished = false;
+            }
+            for (int i = 0; i < LBNUM; i++) {
+                if(loadBuffer[i].busy) finished = false;
+            }
+            if(finished == true) {
+                System.out.println("Finished yet!");
+                return;
+            }
         }
+        exec();
+        writeBack();
+        checkFU();
         printStatus();
+    }
+
+    void checkFU() {
+        setReadyTime();
+        for(int i = 0; i < ADDERNUM; i++) {
+            if(adders[i].busy == false) {
+                //find available reservation
+                int tepReadyTime = 0x7fffffff;
+                int tepInstrIndex = 0x7fffffff;
+                int tepRSIndex = -1;
+                for(int j = 0; j < ARSNUM; j++) {
+                    if(addReserv[j].readyTime > 0 && addReserv[j].exec == false) {
+                        if(addReserv[j].readyTime < tepReadyTime
+                        || (addReserv[j].readyTime == tepReadyTime && addReserv[j].index < tepInstrIndex)) {
+                            tepReadyTime = addReserv[j].readyTime;
+                            tepInstrIndex = addReserv[j].index;
+                            tepRSIndex = j;
+                        }
+                    }
+                }
+                if(tepRSIndex >= 0) { //find rs to fu
+                    System.out.println(addReserv[tepRSIndex].instr.instrStr+" to " + adders[i].name);
+                    adders[i].busy = true;
+                    adders[i].runtimeLeft = addReserv[tepRSIndex].instr.latency;
+                    adders[i].reserv = addReserv[tepRSIndex];
+                    addReserv[tepRSIndex].exec = true;
+                    adders[i].instr = addReserv[tepRSIndex].instr;
+                }
+            }
+        }
+        for(int i = 0; i < MULNUM; i++) {
+            if(multers[i].busy == false) {
+                //find available reservation
+                int tepReadyTime = 0x7fffffff;
+                int tepInstrIndex = 0x7fffffff;
+                int tepRSIndex = -1;
+                for(int j = 0; j < MRSNUM; j++) {
+                    if(mulReserv[j].readyTime > 0 && mulReserv[j].exec == false) {
+                        if(mulReserv[j].readyTime < tepReadyTime
+                        || (mulReserv[j].readyTime == tepReadyTime && mulReserv[j].index < tepInstrIndex)) {
+                            tepReadyTime = mulReserv[j].readyTime;
+                            tepInstrIndex = mulReserv[j].index;
+                            tepRSIndex = j;
+                        }
+                    }
+                }
+                if(tepRSIndex >= 0) { //find rs to fu
+                    System.out.println(mulReserv[tepRSIndex].instr.instrStr+" to " + multers[i].name);
+                    multers[i].busy = true;
+                    multers[i].runtimeLeft = mulReserv[tepRSIndex].instr.latency;
+                    if(mulReserv[tepRSIndex].op == InstrType.DIV && mulReserv[tepRSIndex].vk == 0) {
+                        multers[i].runtimeLeft = 1;
+                    }
+                    multers[i].reserv = mulReserv[tepRSIndex];
+                    mulReserv[tepRSIndex].exec = true;
+                    multers[i].instr = mulReserv[tepRSIndex].instr;
+                }
+            }
+        }
+        for(int i = 0; i < LOADNUM; i++) {
+            if(loaders[i].busy == false) {
+                //find available reservation
+                int tepReadyTime = 0x7fffffff;
+                int tepInstrIndex = 0x7fffffff;
+                int tepRSIndex = -1;
+                for(int j = 0; j < LBNUM; j++) {
+                    if(loadBuffer[j].readyTime > 0 && loadBuffer[j].exec == false) {
+                        // System.out.println("lb"+j);
+                        if(loadBuffer[j].readyTime < tepReadyTime
+                        || (loadBuffer[j].readyTime == tepReadyTime && loadBuffer[j].index < tepInstrIndex)) {
+                            tepReadyTime = loadBuffer[j].readyTime;
+                            tepInstrIndex = loadBuffer[j].index;
+                            tepRSIndex = j;
+                        }
+                    }
+                }
+                if(tepRSIndex >= 0) { //find rs to fu
+                    System.out.println(loadBuffer[tepRSIndex].instr.instrStr+" to " + loaders[i].name);
+                    loaders[i].busy = true;
+                    loaders[i].runtimeLeft = loadBuffer[tepRSIndex].instr.latency;
+                    loaders[i].loadBuffer = loadBuffer[tepRSIndex];
+                    loadBuffer[tepRSIndex].exec = true;
+                    loaders[i].instr = loadBuffer[tepRSIndex].instr;
+                }
+            }
+        }
+    }
+
+    void setReadyTime() { //set ready time and set result
+        for(int i = 0; i < ARSNUM; i++) {
+            if(addReserv[i].busy && addReserv[i].readyTime == -1) {//not ready
+                if(addReserv[i].op == InstrType.JUMP) {
+                    if(addReserv[i].qj == null) {
+                        addReserv[i].readyTime = clock;
+                    }
+                } else {
+                    if(addReserv[i].qj == null && addReserv[i].qk == null) {
+                        addReserv[i].readyTime = clock;
+                        // System.out.println()
+                        if(addReserv[i].op == InstrType.ADD) {
+                            addReserv[i].res = addReserv[i].vj + addReserv[i].vk;
+                        } else if(addReserv[i].op == InstrType.SUB) {
+                            addReserv[i].res = addReserv[i].vj - addReserv[i].vk;
+                        } else {
+                            System.out.println("ERROR1");
+                        }
+                    }
+                }
+            }
+        }
+        for(int i = 0; i < MRSNUM; i++) {
+            if(mulReserv[i].busy && mulReserv[i].readyTime == -1) {//not ready
+                if(mulReserv[i].qj == null && mulReserv[i].qk == null) {
+                    mulReserv[i].readyTime = clock;
+                    if(mulReserv[i].op == InstrType.MUL) {
+                        mulReserv[i].res = addReserv[i].vj * addReserv[i].vk;
+                    } else if(mulReserv[i].op == InstrType.DIV) {
+                        if(mulReserv[i].vk == 0) {
+                            mulReserv[i].res = mulReserv[i].vj;
+                        } else {
+                            mulReserv[i].res = mulReserv[i].vj / mulReserv[i].vk;
+                        }
+                    } else {
+                        System.out.println("ERROR2");
+                    }
+                }
+            }
+        }
+        for(int i = 0; i < LBNUM; i++) {
+            if(loadBuffer[i].busy && loadBuffer[i].readyTime == -1) {
+                //System.out.println("Ready");
+                loadBuffer[i].readyTime = clock;
+            }
+        }
+    }
+
+    void writeBack() {
+        //don't forget to release rs
+        for(int i = 0; i < ARSNUM; i++) {
+            if(addReserv[i].writeTime == clock) {
+                checkAndWrite(addReserv[i].name, addReserv[i].res);
+                addReserv[i].clear(); 
+            }
+        }
+        for(int i = 0; i < MRSNUM; i++) {
+            if(mulReserv[i].writeTime == clock) {
+                checkAndWrite(mulReserv[i].name, mulReserv[i].res);
+                mulReserv[i].clear();
+            } 
+        }
+        for(int i = 0; i < LBNUM; i++) {
+            if(loadBuffer[i].writeTime == clock) {
+                checkAndWrite(loadBuffer[i].name, loadBuffer[i].res);
+                loadBuffer[i].clear();
+            }
+        }
+    }
+
+    void checkAndWrite(String name, int value) {
+        System.out.println("Write " + value + " to " + name);
+        for (int i = 0; i < ARSNUM; i++) {
+            if(addReserv[i].qj != null && addReserv[i].qj.equals(name)) {
+                addReserv[i].qj = null;
+                addReserv[i].vj = value;
+            }
+            if(addReserv[i].qk != null && addReserv[i].qk.equals(name)) {
+                addReserv[i].qk = null;
+                addReserv[i].vk = value;
+            }
+        }
+        for (int i = 0; i < MRSNUM; i++) {
+            if(mulReserv[i].qj != null && mulReserv[i].qj.equals(name)) {
+                mulReserv[i].qj = null;
+                mulReserv[i].vj = value;
+            }
+            if(mulReserv[i].qk != null && mulReserv[i].qk.equals(name)) {
+                mulReserv[i].qk = null;
+                mulReserv[i].vk = value;
+            } 
+        }
+        // for (int i = 0; i < LBNUM; i++) {
+        //     loadBuffer[i] = new LoadBuffer("LB"+(i+1));
+        // }
+        //update regs
+        for(int i = 0; i < REGNUM; i++) {
+            if(regs[i].valid == false && regs[i].rs.equals(name)) {
+                regs[i].valid = true;
+                regs[i].value = value;
+            }
+        }
+    }
+
+    void exec() {
+        //iterate all fu and check if it is busy
+        for(int i = 0; i < ADDERNUM; i++) {
+            decRuntime(adders[i]);
+        }
+        for(int i = 0; i < MULNUM; i++) {
+            decRuntime(multers[i]);
+        }
+        for(int i = 0; i < LOADNUM; i++) {
+            decRuntime(loaders[i]);
+        }
+    }
+
+    void decRuntime(FU fu) {
+        if(fu.busy) {
+            fu.runtimeLeft--;
+            if(fu.runtimeLeft == 0) { //release fu
+                System.out.println("Finished " + fu.instr.instrStr);
+                //save result to reservation
+                if(fu instanceof ArithFU) {
+                    if( ((ArithFU)fu).reserv.op == InstrType.JUMP ) {
+                        hasJump = false;
+                        // JPInstr instr = ((JPStr)((ArithFU)fu).reserv.instr);
+                        if( ((ArithFU)fu).reserv.vj == ((JPInstr)((ArithFU)fu).reserv.instr).value ) {
+                            System.out.println("current pc "+pc);
+                            this.pc -= 1;//issue jump has added pc
+                            this.pc += ((JPInstr)((ArithFU)fu).reserv.instr).off;
+                            System.out.println("after pc " + pc);
+                        }
+                    }
+
+                    ((ArithFU)fu).reserv.writeTime = clock + 1;
+                    if(((ArithFU)fu).reserv.instr.exec != -1) {
+                        ((ArithFU)fu).reserv.instr.exec = clock;
+                    }
+                    fu.busy = false;
+                } else if(fu instanceof LoadFU) {
+                    ((LoadFU)fu).loadBuffer.writeTime = clock + 1;
+                    if(((LoadFU)fu).loadBuffer.instr.exec != -1) {
+                        ((LoadFU)fu).loadBuffer.instr.exec = clock;
+                    }
+                    fu.busy = false;
+                }
+            }
+        }
     }
 
     boolean issue() {
         if (hasJump) return false; // if the result of jump doesn't come out
+        if (pc >= instrs.size()) {
+            System.out.println("No instrs");
+            return false;
+        }
         boolean canIssue = false;
         Instr instr = instrs.get(pc);
         String name = "";
@@ -109,6 +383,7 @@ public class Tomasulo {
             for(int i = 0; i < ARSNUM; i++) {
                 if(addReserv[i].busy == false) {
                     canIssue = true;
+                    hasJump = true;
                     name = addReserv[i].name;
                     issueJP(addReserv[i], (JPInstr)instr); 
                     break;
@@ -131,14 +406,21 @@ public class Tomasulo {
     }
 
     void issueLD(LoadBuffer ldbuffer, LDInstr instr) {
+        ldbuffer.index = pc;
+        ldbuffer.issueTime = clock;
         ldbuffer.busy = true;
         if(instr.issue == -1) instr.issue = clock;
         ldbuffer.instr = instr;
         ldbuffer.op = InstrType.LD;
-        ldbuffer.addr = instr.addr;
+        ldbuffer.res = instr.addr; //the res of LOAD can be accessed directly
+
+        regs[instr.rd].rs = ldbuffer.name;
+        regs[instr.rd].valid = false;
     }
 
     void issueArith(Reserv reserv, ArithInstr instr) {
+        reserv.index = pc;
+        reserv.issueTime = clock;
         reserv.busy = true;
         if(instr.issue == -1) instr.issue = clock;
         reserv.instr = instr;
@@ -155,9 +437,14 @@ public class Tomasulo {
             reserv.qk = null;
         }
         else reserv.qk = regs[rs2].rs;
+
+        regs[instr.rd].rs = reserv.name;
+        regs[instr.rd].valid = false;
     }
 
     void issueJP(Reserv reserv, JPInstr instr) {
+        reserv.index = pc;
+        reserv.issueTime = clock;
         reserv.busy = true;
         if(instr.issue == -1) instr.issue = clock;
         reserv.instr = instr;
@@ -170,6 +457,7 @@ public class Tomasulo {
         else reserv.qj = regs[rs].rs;
         reserv.qk = null;
     }
+
     void printStatus() {
         System.out.println("Reservation Station");
         System.out.println("\tBusy\tOp\tvj\tvk\tqj\tqk");
@@ -179,28 +467,42 @@ public class Tomasulo {
         System.out.println("\tBusy\tAddr");
         for(int i = 0; i < LBNUM; i++) System.out.println(loadBuffer[i]);
         System.out.println("Register status");
-        for(int i = 0; i < 4; i++) {
+        // for(int i = 0; i < 32; i++) {
+        //     System.out.println("F"+i+":"+regs[i].rs);
+        // }
+        for(int i = 0; i < 2; i++) {
             String regName = "";
             String regState = "";
-            for(int j = 0; j < 7; j++) {
-                regName += "F"+(i*8+j) + "\t";
-                if(regs[i].valid == false) regState += regs[i].rs;
+            for(int j = 0; j < 16; j++) {
+                regName += "F"+(i*16+j) + "\t";
+                if(regs[i*8+j].valid == false) regState += regs[i*16+j].rs;
+                else regState += regs[i*16+j].value;
                 regState += "\t";
             }
             System.out.println(regName);
             System.out.println(regState);
         }
-        System.out.println("Register Value");
-        for(int i = 0; i < 4; i++) {
-            String regName = "";
-            String regValue = "";
-            for(int j = 0; j < 7; j++) {
-                regName += "F"+(i*8+j) + "\t";
-                if(regs[i].valid == true) regValue += regs[i].value;
-                regValue += "\t";
-            }
-            System.out.println(regName);
-            System.out.println(regValue);
+        // System.out.println("Register Value");
+        // for(int i = 0; i < 2; i++) {
+        //     String regName = "";
+        //     String regValue = "";
+        //     for(int j = 0; j < 16; j++) {
+        //         regName += "F"+(i*16+j) + "\t";
+        //         if(regs[i*8+j].valid == true) regValue += regs[i*16+j].value;
+        //         regValue += "\t";
+        //     }
+        //     System.out.println(regName);
+        //     System.out.println(regValue);
+        // }
+        System.out.println("Function Unit");
+        for(int i = 0; i < ADDERNUM; i++) {
+            System.out.println(adders[i]);
+        }
+        for(int i = 0; i < MULNUM; i++) {
+            System.out.println(multers[i]);
+        }
+        for(int i = 0; i < LOADNUM; i++) {
+            System.out.println(loaders[i]);
         }
     }
 }

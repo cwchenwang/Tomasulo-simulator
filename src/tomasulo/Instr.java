@@ -3,13 +3,14 @@ package tomasulo;
 enum InstrType {
     ADD, SUB, MUL, DIV, LD, JUMP
 }
-
+//everything in Instr class except time is constant after initializing
 abstract class Instr {
     int issue, exec, write; //issue, exec and write time
     int latency;
     String instrStr;
     InstrType type;
     Instr (InstrType type, String instrStr, int latency) {
+        this.latency = latency;
         this.type = type;
         this.issue = -1;
         this.exec = -1;
