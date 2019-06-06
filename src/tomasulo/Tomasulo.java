@@ -1,8 +1,6 @@
 package tomasulo;
 
 import java.util.List;
-import java.util.ArrayList;
-
 
 public class Tomasulo {
     public static final int REGNUM = 32; //num of registers
@@ -81,37 +79,47 @@ public class Tomasulo {
         this.clock++;
         System.out.println("------------------------------------");
         System.out.println("Clock: " + clock);
-        if(issue() == true) {
-            this.pc++;
-        } else {
-            boolean finished = true;
-            for (int i = 0; i < ADDERNUM; i++) {
-                if(adders[i].busy) finished = false;
-            }
-            for (int i = 0; i < MULNUM; i++) {
-                if(multers[i].busy) finished = false;
-            }
-            for (int i = 0; i < LOADNUM; i++) {
-                if(loaders[i].busy) finished = false;
-            }
-            for (int i = 0; i < ARSNUM; i++) {
-                if(addReserv[i].busy) finished = false;
-            }
-            for (int i = 0; i < MRSNUM; i++) {
-                if(mulReserv[i].busy) finished = false;
-            }
-            for (int i = 0; i < LBNUM; i++) {
-                if(loadBuffer[i].busy) finished = false;
-            }
-            if(finished == true) {
-                System.out.println("Finished yet!");
-                return;
-            }
+
+        if(this.pc >= instrs.size() && checkFinish() == true) {
+            System.out.println("Finished yet!");
+            printTime();
+            return;
         }
         exec();
         writeBack();
+        if(issue() == true) {
+            this.pc++;
+        }
         checkFU();
         printStatus();
+    }
+
+    void printTime() {
+        for(Instr instr : instrs) {
+            System.out.println(instr.issue + " " + instr.ready + " " + instr.exec + " " + instr.write);
+        }
+    }
+    boolean checkFinish() {
+        boolean finished = true;
+        for (int i = 0; i < ADDERNUM; i++) {
+            if(adders[i].busy) finished = false;
+        }
+        for (int i = 0; i < MULNUM; i++) {
+            if(multers[i].busy) finished = false;
+        }
+        for (int i = 0; i < LOADNUM; i++) {
+            if(loaders[i].busy) finished = false;
+        }
+        for (int i = 0; i < ARSNUM; i++) {
+            if(addReserv[i].busy) finished = false;
+        }
+        for (int i = 0; i < MRSNUM; i++) {
+            if(mulReserv[i].busy) finished = false;
+        }
+        for (int i = 0; i < LBNUM; i++) {
+            if(loadBuffer[i].busy) finished = false;
+        }
+        return finished;
     }
 
     void checkFU() {
@@ -205,10 +213,12 @@ public class Tomasulo {
             if(addReserv[i].busy && addReserv[i].readyTime == -1) {//not ready
                 if(addReserv[i].op == InstrType.JUMP) {
                     if(addReserv[i].qj == null) {
+                        if(addReserv[i].instr.ready == -1) addReserv[i].instr.ready = clock;
                         addReserv[i].readyTime = clock;
                     }
                 } else {
                     if(addReserv[i].qj == null && addReserv[i].qk == null) {
+                        if(addReserv[i].instr.ready == -1) addReserv[i].instr.ready = clock;
                         addReserv[i].readyTime = clock;
                         // System.out.println()
                         if(addReserv[i].op == InstrType.ADD) {
@@ -225,6 +235,7 @@ public class Tomasulo {
         for(int i = 0; i < MRSNUM; i++) {
             if(mulReserv[i].busy && mulReserv[i].readyTime == -1) {//not ready
                 if(mulReserv[i].qj == null && mulReserv[i].qk == null) {
+                    if(mulReserv[i].instr.ready == -1) mulReserv[i].instr.ready = clock;
                     mulReserv[i].readyTime = clock;
                     if(mulReserv[i].op == InstrType.MUL) {
                         mulReserv[i].res = addReserv[i].vj * addReserv[i].vk;
@@ -242,7 +253,7 @@ public class Tomasulo {
         }
         for(int i = 0; i < LBNUM; i++) {
             if(loadBuffer[i].busy && loadBuffer[i].readyTime == -1) {
-                //System.out.println("Ready");
+                if(loadBuffer[i].instr.ready == -1) loadBuffer[i].instr.ready = clock;
                 loadBuffer[i].readyTime = clock;
             }
         }
@@ -252,18 +263,32 @@ public class Tomasulo {
         //don't forget to release rs
         for(int i = 0; i < ARSNUM; i++) {
             if(addReserv[i].writeTime == clock) {
+                if(addReserv[i].instr.write == -1) addReserv[i].instr.write = clock;
+                if(addReserv[i].op == InstrType.JUMP) { // if write is jump
+                    System.out.println(addReserv[i].name + addReserv[i].writeTime);
+                    hasJump = false;
+                    // JPInstr instr = ((JPStr)((ArithFU)fu).reserv.instr);
+                    if( addReserv[i].vj == ((JPInstr)addReserv[i].instr).value ) {
+                        System.out.println("current pc "+pc);
+                        this.pc -= 1;//issue jump has added pc
+                        this.pc += ((JPInstr)(addReserv[i].instr)).off;
+                        System.out.println("after pc " + pc);
+                    }
+                }
                 checkAndWrite(addReserv[i].name, addReserv[i].res);
                 addReserv[i].clear(); 
             }
         }
         for(int i = 0; i < MRSNUM; i++) {
             if(mulReserv[i].writeTime == clock) {
+                if(mulReserv[i].instr.write == -1) mulReserv[i].instr.write = clock;
                 checkAndWrite(mulReserv[i].name, mulReserv[i].res);
                 mulReserv[i].clear();
             } 
         }
         for(int i = 0; i < LBNUM; i++) {
             if(loadBuffer[i].writeTime == clock) {
+                if(loadBuffer[i].instr.write == -1) loadBuffer[i].instr.write = clock;
                 checkAndWrite(loadBuffer[i].name, loadBuffer[i].res);
                 loadBuffer[i].clear();
             }
@@ -324,25 +349,15 @@ public class Tomasulo {
                 System.out.println("Finished " + fu.instr.instrStr);
                 //save result to reservation
                 if(fu instanceof ArithFU) {
-                    if( ((ArithFU)fu).reserv.op == InstrType.JUMP ) {
-                        hasJump = false;
-                        // JPInstr instr = ((JPStr)((ArithFU)fu).reserv.instr);
-                        if( ((ArithFU)fu).reserv.vj == ((JPInstr)((ArithFU)fu).reserv.instr).value ) {
-                            System.out.println("current pc "+pc);
-                            this.pc -= 1;//issue jump has added pc
-                            this.pc += ((JPInstr)((ArithFU)fu).reserv.instr).off;
-                            System.out.println("after pc " + pc);
-                        }
-                    }
 
                     ((ArithFU)fu).reserv.writeTime = clock + 1;
-                    if(((ArithFU)fu).reserv.instr.exec != -1) {
+                    if(((ArithFU)fu).reserv.instr.exec == -1) {
                         ((ArithFU)fu).reserv.instr.exec = clock;
                     }
                     fu.busy = false;
                 } else if(fu instanceof LoadFU) {
                     ((LoadFU)fu).loadBuffer.writeTime = clock + 1;
-                    if(((LoadFU)fu).loadBuffer.instr.exec != -1) {
+                    if(((LoadFU)fu).loadBuffer.instr.exec == -1) {
                         ((LoadFU)fu).loadBuffer.instr.exec = clock;
                     }
                     fu.busy = false;

@@ -6,6 +6,7 @@ enum InstrType {
 //everything in Instr class except time is constant after initializing
 abstract class Instr {
     int issue, exec, write; //issue, exec and write time
+    int ready;
     int latency;
     String instrStr;
     InstrType type;
@@ -15,6 +16,7 @@ abstract class Instr {
         this.issue = -1;
         this.exec = -1;
         this.write = -1;
+        this.ready = -1;
         this.instrStr = instrStr;
     }
 }
