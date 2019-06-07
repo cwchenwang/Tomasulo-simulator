@@ -129,8 +129,9 @@ public class Tomasulo {
     }
 
     void printTime() {
+        System.out.println("Issue\tReady\tExec\tWrite\t");
         for(Instr instr : instrs) {
-            System.out.println(instr.issue + " " + instr.ready + " " + instr.exec + " " + instr.write);
+            System.out.println(instr.issue + "\t" + instr.ready + "\t" + instr.exec + "\t" + instr.write + "\t" + instr.instrStr);
         }
     }
     boolean checkFinish() {
@@ -260,6 +261,9 @@ public class Tomasulo {
                         } else if(addReserv[i].op == InstrType.SUB) {
                             addReserv[i].res = addReserv[i].vj - addReserv[i].vk;
                         } else if(addReserv[i].op == InstrType.SAL) {
+                            System.out.println(addReserv[i].vj);
+                            System.out.println(addReserv[i].vk);
+                            System.out.println(4<<2);
                             addReserv[i].res = addReserv[i].vj << addReserv[i].vk;
                         } else if(addReserv[i].op == InstrType.SAR) {
                             addReserv[i].res = addReserv[i].vj >> addReserv[i].vk;

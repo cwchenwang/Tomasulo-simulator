@@ -1,0 +1,247 @@
+\documentclass[paper=a4, fontsize=11pt, UTF8]{article} % A4 paper and 11pt font size
+\usepackage[a4paper,left=3.18cm,right=3.18cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{ctex}
+%\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage{fourier} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{siunitx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\definecolor{vgreen}{RGB}{104,180,104}
+\definecolor{vblue}{RGB}{49,49,255}
+\definecolor{vorange}{RGB}{255,143,102}
+\lstset
+{
+    backgroundcolor=\color[RGB]{245,245,244},
+	basicstyle={\footnotesize\ttfamily},        % set code style
+	keywordstyle=\color{vblue},
+	identifierstyle=\color{black},
+	commentstyle=\color{vgreen},
+	% numbers=left,                      % set line numbers
+	numberstyle={\tiny \color{black}}, % set fonts of line numbers
+	frame=lines,                      % set type of open 
+	numbersep=10pt,
+	breaklines=true,                   % automatic line break
+    tabsize=4,
+    aboveskip=10pt,
+    belowskip=2pt
+}
+
+
+\title{\fontsize{18}\baselineskip Tomasulo模拟器实验报告}
+
+\author{王 \; 琛 \quad 2016011360 \quad 计65}
+\date{\normalsize\today} % Today's date or a custom date
+
+\begin{document}
+
+\maketitle
+
+\fontsize{11pt}{18pt}\selectfont
+%\newpage
+
+\section{实验原理}
+本次实验要求完成Tomasulo算法模拟器。Tomasulo算法以硬件的方式实现寄存器重命名，允许指令顺序发射，乱序执行，能够有效提高流水线的吞吐率和运行效率。
+
+\section{实验要求}
+实验要求实现的模拟器应当能够接受NEL语言作为输入，并且给出每个周期结束时相应部件的运行状态。NEL语言只支持三类指令，运算指令、装载指令和控制指令。另外，对于一些细节的要求如下：
+\begin{itemize}
+    \item 在某个指令的执行完成周期，该指令所占有的FU就应当被释放。其他就绪指令可以在此周期进入FU，下个周期即能开始执行。
+    \item 在某个指令的写回周期，该指令占用的保留站被释放。在此周期被issue的指令可以进入保留站。
+    \item 当除法中除数为0时，直接写入被除数的值，只需要执行一个周期。在记录每条指令的执行和写回周期时，由于循环的出现，同一条DIV指令可能被执行多次。如果后执行的指令由于除0只需要一个周期，可能提前完成。由于我们要求记录指令第一次发射的执行完成和写回周期，因此有可能记录的是后完成的指令周期，从而导致错误的结果。对此，我的处理方法是，保留站中记录指令的发射周期，在记录执行完成和写回周期时，判断保留站的指令发射周期和对应的指令发射周期是否相同，如果相同则为第一次发射，应当记录。否则，此次发射不是指令第一次执行，不记录。
+\end{itemize}
+
+
+
+\section{实验设计}
+\subsection{设计思路}
+按照实验要求，代码中模拟了对应的功能部件、保留站和32个寄存器。项目使用Java编写。
+
+Tomasulo算法的核心有三个过程，发射、执行和写回。在硬件上，这三个过程是并行完成的，但是程序中不得不串行执行。为了保证本周期释放的保留站能够被本周期发射的指令使用，我将发射放在了每个周期的最后完成。
+
+\subsection{具体设计}
+程序主要分为指令模块、寄存器模块、保留站模块、运算部件模块、主程序模块以及用户界面模块。下面具体介绍：
+\subsubsection{指令模块：Instr.java \& InstrLoader.java}
+Instr.java中定义了指令的基类，包含指令各阶段的时间信息，指令执行所需周期，指令的种类信息。
+\begin{lstlisting}[language=java]
+    abstract class Instr {
+    int issue, exec, write; //issue, exec and write time
+    int ready;
+    int latency;
+    String instrStr;
+    InstrType type;
+    Instr (InstrType type, String instrStr, int latency) {
+        this.latency = latency;
+        this.type = type;
+        this.issue = -1;
+        this.exec = -1;
+        this.write = -1;
+        this.ready = -1;
+        this.instrStr = instrStr;
+    }
+}
+\end{lstlisting}
+而ArithInstr, JPInstr, LDInstr则继承了Instr类，分别代表算术指令、跳转指令和加载指令，每个子类有自己的操作数等独特属性。
+
+InstrLoader类则是从Nel文件中加载指令，将每条指令存放为Instr类，最终将所有指令按顺序放入链表中。
+
+\subsubsection{寄存器模块：Register.java}
+寄存器模块主要是存放每个寄存器的信息。valid表示其中的值是否有效，如果有效，value则为寄存器的值；如果无效，说明该寄存器正在等待某个保留栈，此时rs存放了对应的保留站名称。
+\begin{lstlisting}
+    class Register {
+        int value;
+        String rs; // the name of waiting rs
+        boolean valid; // invalid if it is waiting
+        Register() {
+            value = 0;
+            rs = null;
+            valid = true;
+        }
+        void writeValue(int res) {
+            value = res;
+            valid = true;
+            rs = null;
+        }
+        void clear() {
+            value = 0;
+            rs = null;
+            valid = true;
+        }
+    }
+\end{lstlisting}
+
+\subsubsection{保留站模块：Reserv.java}
+保留站模块是对保留站进行的抽象，记录了保留站对应指令的序号，发射、执行、写回时间，指令的操作类型、指令的结果。另外，busy表示保留站是否被占用，而exec表示保留站对应的指令是否在功能单元执行。exec的时间是busy的子集，引入exec的主要目的在于选择功能单元时区分已经进入和未进入功能单元的保留站。由于Load指令使用的保留站的其他指令稍有不同，代码中做了相应的区分，将其设置为LoadBuffer类。
+
+\subsubsection{功能单元模块：FU.java}
+功能单元记录了其是否被占用、剩余执行时间以及执行的指令。基类是FU，子类有ArithFU和LoadFU。
+
+\begin{lstlisting}
+    class FU {
+        int runtimeLeft;
+        boolean busy;
+        // int res;
+        Instr instr;
+        String name;
+        FU (String name) {
+            this.name = name;
+            this.busy = false;
+        }
+    }
+\end{lstlisting}
+
+\subsubsection{主程序模块：Tomasulo.java}
+此模块完成了对每个功能部件的初始化以及指令的执行。下面对各个函数做具体的介绍。
+\paragraph{issue}
+issue函数根据不同的指令类型检查相对应的保留站是否有空余，如果有则发射指令，占用相对应的保留站。另外，由于没有做分支预测，如果当前程序中JUMP指令尚未返回结果，则直接无法发射指令。
+
+\paragraph{exec}
+对应算法中的执行阶段。遍历所有的功能部件，查看是否有指令在执行，如果有，则将其执行的剩余时间减1。如果剩余时间为0，则释放此功能部件，并且将其对应的指令的写回时间设置为下个周期。
+
+\paragraph{writeBack}
+对应算法的写回阶段。遍历所有的保留站，利用exec阶段中记录的写回时间，如果写回时间正好等于当前周期，则进行写回操作。具体由checkAndWrite函数完成，该函数以某个保留站的名字做为参数，遍历其余的保留站和寄存器，如果有等待传入保留站的数据，则将数据写入，这也是Tomasulo算法的核心之处，相当于硬件中在Common Data Bus中传送数据。
+
+\paragraph{checkFU}
+除了以上三个算法中的核心函数，模拟器中在每个周期还要执行checkFU函数。此函数的主要目的是检查是否有空闲的功能部件，以使就绪指令能够及时进入功能部件，下周期开始执行。
+
+\paragraph{executeByStep}
+执行算法的一个周期。首先判断是否执行完成，如果没有完成，依次执行exec, writeBack, issue, checkFU函数。将issue放在exec和writeBack的主要目的是能够使用writeBack刚释放的保留站。
+
+\subsubsection{UI模块：Widgets.java \& MainWin.java}
+Widgets.java定义了寄存器、保留站和功能部件的显示方式。MainWin对此进行初始化并且显示。
+
+主界面如下：
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{photos/win.png}
+\end{figure}
+每个按钮的功能为：
+\paragraph{Choose}
+选择一个nel文件将其加载到模拟器中。
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{photos/choose.png}
+\end{figure}
+
+\paragraph{Run}
+调用executeByStep函数，执行一个周期。
+
+\paragraph{RunX}
+弹出输入框，输入一个数字，执行相应数目的周期。
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{photos/input.png}
+\end{figure}
+
+执行了10个周期的显示：
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{photos/clock10.png}
+\end{figure}
+
+\subsection{扩展指令}
+实现中，我扩展了nel指令集，加入了SAL和SAR，对应了算术左移和算术右移。格式为SAR, F1, F2, F3，含义是将F2寄存器的值右移F3位放入F1中，执行周期为1，使用Ars作为保留站，Add作为功能单元。
+
+给出的测试用例如下：(见testsft.nel)
+\begin{lstlisting}
+    LD,F1,0x3
+    LD,F5,0x5
+    LD,F6,0x1
+    SAR,F2,F5,F6
+    ADD,F5,F1,F2
+    LD,F3,0xFFFFFFFC
+    MUL,F4,F1,F3
+    LD,F1,0x4
+    LD,F2,0x2
+    SAL,F1,F1,F2
+    JUMP,0x10,F1,0x2
+    DIV,F2,F1,F3
+    SUB,F1,F2,F5
+\end{lstlisting}
+包含了SAR和SAL指令，JUMP中F1等于16，满足条件应该直接跳转到最后一条指令，最终的执行结果如下图：
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{photos/sfttest.png}
+\end{figure}
+经过验证，执行结果与人工计算完全相同。
+
+\subsection{补充测例}
+test3.nel中对于各种冲突进行了测试：
+\begin{lstlisting}
+    LD,F2,0x4
+    LD,F4,0x1
+    LD,F8,0x10
+    LD,F6,0x2
+    SUB,F0,F2,F4
+    ADD,F2,F4,F8      F2 WAR冲突
+    MUL,F2,F2,F8      F2 RAW, WAW冲突
+    DIV,F8,F8,F6      F8 WAR冲突
+    MUL,F2,F4,F8      F2 WAW，F8 WAR冲突，保留站满
+    MUL,F6,F0,F2      F2, F0 WAR冲突，保留站满
+\end{lstlisting}
+经过测试，程序运行正确。
+
+\subsection{代码编译}
+代码使用的javac和java版本均为1.8.0\_191，所有源代码均在src/tomasulo文件夹中，做为一个package的形式存在。编译时进入src文件夹，执行javac tomasulo/*.java编译，使用java tomasulo/MainWin执行，也可用java tomasulo/Main执行命令行程序。
+
+或者直接执行run.sh文件，会将编译的class文件存放入src同级的bin文件夹下，之后直接执行。
+
+\section{实验总结}
+这次实验是实现Tomasulo算法模拟器。实验中让我体会最深的是，课堂上讲的、作业做的算法，似乎都很简单，但是实验中却有数不清的细节要注意。由于代码封装做的不好，我写了很多重复的代码，也因此出现了很多可笑的bug。代码中有很多细节需要注意，需要想的很清楚才能写下去。最终我还是顺利完成了实验，感谢老师和助教的付出！
+
+\end{document}
