@@ -297,7 +297,7 @@ public class Tomasulo {
         //don't forget to release rs
         for(int i = 0; i < ARSNUM; i++) {
             if(addReserv[i].writeTime == clock) {
-                if(addReserv[i].instr.write == -1) addReserv[i].instr.write = clock;
+                if( addReserv[i].instr.write == -1 && addReserv[i].issueTime == addReserv[i].instr.issue ) addReserv[i].instr.write = clock;
                 if(addReserv[i].op == InstrType.JUMP) { // if write is jump
                     System.out.println(addReserv[i].name + addReserv[i].writeTime);
                     hasJump = false;
@@ -315,14 +315,14 @@ public class Tomasulo {
         }
         for(int i = 0; i < MRSNUM; i++) {
             if(mulReserv[i].writeTime == clock) {
-                if(mulReserv[i].instr.write == -1) mulReserv[i].instr.write = clock;
+                if( mulReserv[i].instr.write == -1 && mulReserv[i].instr.issue == mulReserv[i].issueTime ) mulReserv[i].instr.write = clock;
                 checkAndWrite(mulReserv[i].name, mulReserv[i].res);
                 mulReserv[i].clear();
             } 
         }
         for(int i = 0; i < LBNUM; i++) {
             if(loadBuffer[i].writeTime == clock) {
-                if(loadBuffer[i].instr.write == -1) loadBuffer[i].instr.write = clock;
+                if( loadBuffer[i].instr.write == -1 && loadBuffer[i].instr.issue == loadBuffer[i].issueTime ) loadBuffer[i].instr.write = clock;
                 checkAndWrite(loadBuffer[i].name, loadBuffer[i].res);
                 loadBuffer[i].clear();
             }
@@ -385,13 +385,13 @@ public class Tomasulo {
                 if(fu instanceof ArithFU) {
 
                     ((ArithFU)fu).reserv.writeTime = clock + 1;
-                    if(((ArithFU)fu).reserv.instr.exec == -1) {
+                    if(((ArithFU)fu).reserv.instr.exec == -1 && ((ArithFU)fu).reserv.instr.issue == ((ArithFU)fu).reserv.issueTime ) {
                         ((ArithFU)fu).reserv.instr.exec = clock;
                     }
                     fu.busy = false;
                 } else if(fu instanceof LoadFU) {
                     ((LoadFU)fu).loadBuffer.writeTime = clock + 1;
-                    if(((LoadFU)fu).loadBuffer.instr.exec == -1) {
+                    if( ((LoadFU)fu).loadBuffer.instr.exec == -1 && ((LoadFU)fu).loadBuffer.instr.issue == ((LoadFU)fu).loadBuffer.issueTime ) {
                         ((LoadFU)fu).loadBuffer.instr.exec = clock;
                     }
                     fu.busy = false;
