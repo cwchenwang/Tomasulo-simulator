@@ -13,8 +13,8 @@ public class InstrLoader {
     static final int JPLTC = 1;
     static final int ADDLTC = 3;
     static final int SUBLTC = 3;
-    static final int MULLTC = 4;
-    static final int DIVLTC = 4;
+    static final int MULLTC = 12;
+    static final int DIVLTC = 40;
     //read the instr file line by line
     static List<String> readFileByLine(String filePath)
     {

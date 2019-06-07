@@ -75,6 +75,7 @@ public class Tomasulo {
 
     void reset() { //used when new file loaded
         pc = 0;
+        clock = 0;
         hasJump = false;
         for (int i = 0; i < REGNUM; i++) {
             regs[i].clear();
@@ -271,7 +272,7 @@ public class Tomasulo {
                     if(mulReserv[i].instr.ready == -1) mulReserv[i].instr.ready = clock;
                     mulReserv[i].readyTime = clock;
                     if(mulReserv[i].op == InstrType.MUL) {
-                        mulReserv[i].res = addReserv[i].vj * addReserv[i].vk;
+                        mulReserv[i].res = mulReserv[i].vj * mulReserv[i].vk;
                     } else if(mulReserv[i].op == InstrType.DIV) {
                         if(mulReserv[i].vk == 0) {
                             mulReserv[i].res = mulReserv[i].vj;

@@ -46,8 +46,15 @@ public class MainWin {
         btnPanel.runBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("hello world");
-                updateData();
+                runSingle();
+            }
+        });
+        btnPanel.runxBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String s = JOptionPane.showInputDialog(null, "Please input running steps");
+                int steps = Integer.parseInt(s);
+                runX(steps);
             }
         });
         btnPanel.brsBtn.addActionListener(new ActionListener() {
@@ -72,11 +79,41 @@ public class MainWin {
     void loadNelFile(String path) {
         System.out.println(path);
         tomasulo.execNewFile(path);
+        btnPanel.clear();
+        lbPanel.clear();
+        rsPanel.clear();
+        regPanel.clear();
+        fuPanel.clear();
         JOptionPane.showMessageDialog(null, "Nel file has been loaded!", "Tips", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    void updateData() {
-        if(tomasulo.instrs.size() <= 0) {
+    void runX(int steps) {
+        if(tomasulo.instrs == null || tomasulo.instrs.size() <= 0) {
+            JOptionPane.showMessageDialog(null, "Please choose a legal file!", "Error", JOptionPane.INFORMATION_MESSAGE);
+            return; 
+        }
+        if(steps < 0) {
+            JOptionPane.showMessageDialog(null, "Steps must be positive integer!", "Error", JOptionPane.INFORMATION_MESSAGE);
+            return; 
+        }
+        for(int i = 0; i < steps; i++) {
+            if(tomasulo.executeByStep() == true) {
+                JOptionPane.showMessageDialog(null, "Exec has finished!", "Tips", JOptionPane.INFORMATION_MESSAGE);
+                break;
+            }
+        }
+        updateInfo();
+    }
+
+    void updateInfo() {
+        btnPanel.clkLabel.setText("CLOCK: "+Integer.toString(tomasulo.clock));
+        lbPanel.updateData(tomasulo.getLB());
+        rsPanel.updateData(tomasulo.getRS());
+        regPanel.updateData(tomasulo.getRegs());
+        fuPanel.updateData(tomasulo.getFU());
+    }
+    void runSingle() {
+        if(tomasulo.instrs == null || tomasulo.instrs.size() <= 0) {
             JOptionPane.showMessageDialog(null, "Please choose a legal file!", "Error", JOptionPane.INFORMATION_MESSAGE);
             return; 
         }

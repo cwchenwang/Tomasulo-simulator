@@ -9,6 +9,7 @@ class BtnPanel extends JPanel{
     FlowLayout flowLayout;
     JButton brsBtn;
     JButton runBtn;
+    JButton runxBtn;
     JLabel clkLabel;
     public BtnPanel() {
         super();
@@ -17,6 +18,7 @@ class BtnPanel extends JPanel{
 
         runBtn = new JButton("Run");
         brsBtn = new JButton("Choose");
+        runxBtn = new JButton("Run x");
         this.add(brsBtn);
         this.brsBtn.setPreferredSize(new Dimension(80, 60));
         brsBtn.setBackground(Color.BLUE);
@@ -25,10 +27,17 @@ class BtnPanel extends JPanel{
         this.runBtn.setPreferredSize(new Dimension(80, 60));
         runBtn.setBackground(Color.BLUE);
 
+        this.add(runxBtn);
+        this.runxBtn.setPreferredSize(new Dimension(80, 60));
+        runxBtn.setBackground(Color.BLUE);
+
         clkLabel = new JLabel("CLOCK: 0", JLabel.CENTER);
         clkLabel.setFont(new Font("CLOCK: 0", Font.BOLD, 20));
         this.add(clkLabel);
         this.setPreferredSize(new Dimension(100, 100));
+    }
+    void clear() {
+        clkLabel.setText("CLOCK: 0");
     }
 }
 
@@ -91,12 +100,8 @@ class RSPanel extends JPanel {
         rsTable = new JTable(data, lbHead);
         rsTable.setEnabled(false);
         rsTable.setPreferredScrollableViewportSize(new Dimension(800, 150));
-        // rsTable.setPreferredSize(new Dimension(800, 250));
         scrollTable = new JScrollPane(rsTable);
         this.add(scrollTable);
-        // this.add(rsTable.getTableHeader(), BorderLayout.PAGE_START);
-        // this.add(rsTable, BorderLayout.CENTER);
-        //this.add(rsTable);
     }
 
     void updateData(String[][] data) {
@@ -110,7 +115,8 @@ class RSPanel extends JPanel {
     void clear() {
         for(int i = 0; i < 9; i++) {
             for(int j = 0; j < 6; j++) {
-                rsTable.setValueAt("No", i, j+1);
+                if(j == 0) rsTable.setValueAt("No", i, j+1);
+                else rsTable.setValueAt("", i, j+1);
             }
         }
     }
