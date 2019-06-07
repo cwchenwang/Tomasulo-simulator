@@ -1,7 +1,7 @@
 package tomasulo;
 
 enum InstrType {
-    ADD, SUB, MUL, DIV, LD, JUMP
+    ADD, SUB, MUL, DIV, LD, JUMP, SAL, SAR
 }
 //everything in Instr class except time is constant after initializing
 abstract class Instr {

@@ -259,8 +259,12 @@ public class Tomasulo {
                             addReserv[i].res = addReserv[i].vj + addReserv[i].vk;
                         } else if(addReserv[i].op == InstrType.SUB) {
                             addReserv[i].res = addReserv[i].vj - addReserv[i].vk;
+                        } else if(addReserv[i].op == InstrType.SAL) {
+                            addReserv[i].res = addReserv[i].vj << addReserv[i].vk;
+                        } else if(addReserv[i].op == InstrType.SAR) {
+                            addReserv[i].res = addReserv[i].vj >> addReserv[i].vk;
                         } else {
-                            System.out.println("ERROR1");
+                            System.out.println("Error");
                         }
                     }
                 }
@@ -409,7 +413,7 @@ public class Tomasulo {
         boolean canIssue = false;
         Instr instr = instrs.get(pc);
         String name = "";
-        if(instr.type == InstrType.ADD || instr.type == InstrType.SUB) {
+        if(instr.type == InstrType.ADD || instr.type == InstrType.SUB || instr.type == InstrType.SAL || instr.type == InstrType.SAR) {
             for (int i = 0; i < ARSNUM; i++) {
                 if (addReserv[i].busy == false) {
                     canIssue = true;

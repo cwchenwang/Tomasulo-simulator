@@ -4,6 +4,7 @@ import java.io.File;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 
 public class MainWin {
@@ -61,7 +62,11 @@ public class MainWin {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Choose file!");
-                JFileChooser jf = new JFileChooser();
+                JFileChooser jf = new JFileChooser("../test");
+                jf.setMultiSelectionEnabled(false);
+                FileNameExtensionFilter filter = new FileNameExtensionFilter(
+                        "*.nel", "nel");
+                jf.setFileFilter(filter);
                 jf.showOpenDialog(null);
                 File f = jf.getSelectedFile();
                 String path = f.getAbsolutePath();

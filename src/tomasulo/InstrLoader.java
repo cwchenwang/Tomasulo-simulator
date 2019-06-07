@@ -15,6 +15,7 @@ public class InstrLoader {
     static final int SUBLTC = 3;
     static final int MULLTC = 12;
     static final int DIVLTC = 40;
+    static final int SFTLTC = 1;
     //read the instr file line by line
     static List<String> readFileByLine(String filePath)
     {
@@ -49,6 +50,8 @@ public class InstrLoader {
         else if (str.equals("MUL")) return InstrType.MUL;
         else if (str.equals("DIV")) return InstrType.DIV;
         else if (str.equals("JUMP")) return InstrType.JUMP;
+        else if (str.equals("SAL")) return InstrType.SAL;
+        else if (str.equals("SAR")) return InstrType.SAR;
         else {
             System.out.println("Unknown instruction type");
             return InstrType.ADD;
@@ -87,6 +90,10 @@ public class InstrLoader {
                         break;
                     case DIV:
                         latency = DIVLTC;
+                        break;
+                    case SAL:
+                    case SAR:
+                        latency = SFTLTC;
                         break;
                     default:
                         System.out.println("Unknown instruction type.");
